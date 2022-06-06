@@ -1,0 +1,656 @@
+using gold.**
+
+
+var currentString: String
+var images: GArrayList()
+
+var allSymbols: ISet
+var keyWords: ISet
+var skipChars: ISet
+
+
+var  preKW : ISet
+var  preOps :ISet
+
+var StartOps:ISet
+var Symbols1: ISet
+
+var CharsSymbols1: ISet
+
+var alpha:ISet
+
+var digits :ISet
+
+var alphaNum : ISet
+
+var Out : ISet
+var diffIdents : Boolean
+
+var Ids: ISet
+var translation : GHashTableMap()
+    
+chars(string) :=  {string.charAt(i)| 0 <= i <string.length() }
+
+
+charsStrings(strings) := (∪ s | s ∈ strings: chars(s) )
+
+
+elements(array) :=  {array[i]| 0 <= i < |array| }
+         
+prefixes(string) := {string.substring(0,i)| 1 <= i <= string.length() }
+splits(string):= { ⟨string.substring(0,i),string.substring(i,string.length())⟩| 1 <= i <= string.length()-1 }
+
+allPrefixes(strings):= (∪ s | s ∈ strings: prefixes(s) )
+
+translationGet(q) :=  ((|q|=1 and q ∈Symbols1 and q != '\n')?q:translation.get(q))
+ 
+procedure main(args:String[]) begin
+    currentString := λ
+    //print 'a'
+    lexer = createLexer()
+   parser = createParser()
+   
+	 
+	 //testLexer(lexer)
+	 //GAutomataFrame.show(lexer)
+	 //GAutomataFrame.show(parser)
+   
+	 testLexerParser(lexer,parser)
+end
+  
+  
+procedure testLexer(M:ITransducer) begin
+	var sc:java.util.Scanner(System.$in)
+    var string:String	
+    
+    
+    
+    inputA = elements(M.getInputAlphabet())
+    
+    
+	input = ""
+		
+		
+		print "----------------------------"
+		print "Enter one or more lines. End with a single line with $"
+       print "If you want to stop testing, enter EXIT"
+       string:=sc.nextLine() 
+       
+
+
+
+	while string != "EXIT" do
+		
+	   string := string + " \n "	
+       input := ""
+       while string.charAt(0) != '$' do
+              input := input + string 
+              string:=sc.nextLine() + " \n  "
+       end
+       
+       if chars(input) ⊆ inputA then
+           currentString :=  λ
+           images := GArrayList()
+       	result:=M.acceptsString(input)    
+			tokenStream := M.getOutputString()
+		    
+		
+			print "The input was "+(result?"":"not ")+" accepted by the lexer."
+			if result then 
+				print "Token Stream:  "+ tokenStream 
+			   print "Strings: "+images
+			
+			else print "Partial token Stream "+ tokenStream 
+			end
+			else print "Input contains invalid characters: "+ (chars(input) \ inputA)
+		end
+       print "----------------------------"
+	
+	   print "Enter one or more lines. End with a single line with $"
+       print "If you want to stop testing, enter EXIT"
+       string:=sc.nextLine()
+       
+end
+print  "Good bye"
+print  ""
+
+end 
+
+
+  
+ 
+ 
+ 
+ function problems(q: String) begin
+    
+    
+    if q in allSymbols then return false
+    elseif |q|≤1  then return true
+    else
+    	for each ⟨s,t⟩ in splits(q) do
+         if not problems(s) and not problems(t) then return false end
+       end
+       return true
+	end
+   	
+ end
+ 
+ 
+ 	
+ 	
+ 	function translationPreOps(state) begin
+ 	 var x, y
+ 	 var q: String
+ 	 q:= state
+ 	 n := q.length()
+ 	 if n=0 then return λ
+ 	 elseif q  ∈ allSymbols then 
+ 	 	images.add(q)
+ 	 	return translationGet(q)  
+ 	 elseif n=1 then return λ
+ 	 else  
+ 	 	 for each ⟨s,t⟩ in splits(q) do
+ 	     	x:=translationPreOps(s)
+       	y:=translationPreOps(t) 
+          	if x≠ λ  and  y≠λ then 
+            return x+y end
+        end
+        
+ 	    return   λ
+ 	     
+   end
+
+ end
+ 	
+ 	
+ 	
+ // **************  This is the only  procedure you have to change for your lexer 
+ 
+ procedure initialize() begin
+ 
+ 	skipChars := {' ', '\t', '\n'}
+	alpha := ('A'‥'Z')∪('a' ‥ 'z') 
+    digits :=  ('0'‥'9')
+	alphaNum := alpha ∪ digits  ∪ {'-'}      // Alphanumeric characters
+
+	keyWords := {":left",":right",":around",":north",":south",":east",":west",":front",":back",":balloons", ":chips", "defvar", "move","turn","put","pick","face","move-dir","run-dirs","move-face","skip","if","loop","repeat","defun", "facing-p","can-put-p","can-pick-p","can-move-p","not"}  // keywords
+	allSymbols := {"(", ")", "="  }  // Symbols  and brackets, both single char and  multicharacter
+	
+	
+	
+	
+	// TRANSLATION FOR ALL STRINGS IN KEYWORDS
+	
+	// Operators can be translated as themselves
+	
+	// translation.put("\n",'Φ')  only use this if \n is part of the language and is not skipped
+	 translation.put(":left",'l')
+	 translation.put(":right",'g')
+	 translation.put(":around",'a')
+	 translation.put(":north",'n')
+	 translation.put(":south",'s')
+	 translation.put(":east",'e')
+	 translation.put(":west",'w')
+	 translation.put(":front",'d')
+	 translation.put(":back",'k')
+	 
+	 translation.put(":balloons",'b')
+	 translation.put(":chips",'c')
+	 
+	translation.put("defvar",'D')
+	translation.put("move",'M') 
+	translation.put("turn",'T')
+	translation.put("put",'P') 
+	translation.put("pick",'K')
+	translation.put("face",'F') 
+	
+	translation.put("move-dir",'V') 
+	translation.put("run-dirs",'X')
+	translation.put("move-face",'O')
+	
+	translation.put("skip",'S')
+	//Control structures
+	translation.put("if",'I') 
+	translation.put("loop",'L')
+	translation.put("repeat",'R') 
+	translation.put("defun",'E') 
+	
+	//Conditions
+	translation.put("facing-p",'1') 
+	translation.put("can-put-p",'2')
+	translation.put("can-pick-p",'3') 
+	translation.put("can-move-p",'4') 
+	translation.put("not",'N') 
+	
+	
+	 //variables
+	 translation.put("IdL",'v')  //if  there is no difference between names that start with caps and those that don't,
+	    							//assign the same translation
+	 //Num
+	 translation.put("Num",'#')
+	
+	 // **************
+	 
+	    
+	
+end
+
+
+
+function createLexer():ITransducer begin
+	
+   initialize()
+	
+	preOps := allPrefixes(allSymbols)
+ 	preKW  := allPrefixes(keyWords)
+ 	
+	StartOps := (∪ x | x ∈ allSymbols: {x.charAt(0)} ) 
+	Symbols1 := ((∪ x | x ∈ StartOps: {""+x} ) ∩ allSymbols) // \ {"\n"}  add this if \n  is a token 
+	CharsSymbols1 := (∪ x | x ∈ Symbols1: {x.charAt(0)} )
+	
+	
+	Out   := 	CharsSymbols1 ∪ (∪ x | x ∈ translation.values(): {x} )
+
+	//print StartOps
+   Ids:= {"IdL"}
+
+   Q:= {"INIT","Num","Err","IdL"} ∪ preKW ∪ preOps 
+	
+	
+	
+	Σ:= alphaNum ∪ charsStrings(allSymbols) ∪ skipChars ∪ {':','-'}
+	
+	//print Σ
+	q₀:="INIT"
+	F:= {"INIT"}
+	return 	GDeterministicTransducer(Q,Σ,Out,q₀,F,δ,g,h)
+end
+
+function δ(state,σ) begin
+  
+ 
+   var q: String
+   q := state
+   
+   if q = "Err" then return "Err" 
+   
+   elseif q ∈ preOps  then
+ 		if q+σ in preOps then   return q+σ 
+     	elseif problems(q) then  return "Err"
+    	elseif σ ∈ skipChars  then return "INIT"	
+     	elseif  σ in ('0'‥'9') then  return "Num"
+       elseif  λ+σ in preKW then return λ+σ
+       //elseif  σ in alphaUpper  then return "IdU"	
+       elseif  σ in alpha  then return "IdL"	
+       elseif  λ+σ in preOps then	 return λ+σ
+       else return "Err"
+  		end	  	
+  		
+    elseif  σ ∈ skipChars and q ∈ preKW and not (q∈keyWords) and q.charAt(0)=':'   then return "Err"	
+    elseif  σ ∈ skipChars   then return "INIT"	
+    	
+    elseif q="INIT" and  σ in ('0'‥'9') then  return "Num"
+    elseif q="INIT" and  λ+σ in preKW then return λ+σ
+    //elseif q = "INIT" and σ in alphaUpper  then return "IdU"
+    elseif q = "INIT" and σ in alpha  then return "IdL"	
+    elseif q = "INIT" and  λ+σ in preOps then	 return λ+σ 
+    	
+    elseif q ∈ preKW  and (q+σ) in preKW then return q+σ 	
+    //elseif q ∈ preKW and σ in alphaNum  and q.charAt(0) ∈ alphaUpper then return "IdU"
+    elseif q ∈ preKW and σ in alphaNum  and q.charAt(0) ∈ alpha then return "IdL"
+    elseif q ∈ preKW  and  λ+σ in preOps then	 return λ+σ
+    	
+    elseif q = "Num" and  σ in ('0'‥'9') then  return "Num"
+    elseif q = "Num" and  λ+σ in preOps  then return λ+σ
+     elseif q = "Num" and σ in alphaNum  then return "Err"	
+    elseif q ∈ Ids  and σ in alphaNum  then return q
+    elseif q ∈ Ids and  λ+σ in preOps  then return λ+σ
+    else return "Err"
+end	
+end 
+
+ 
+
+
+function g(q) begin
+	return λ
+end
+
+function h(q,σ) begin
+	var s: String
+	
+	
+	s :=(σ = '\n')?"\\n": (λ+σ)  
+
+  if q ∈ preOps  then
+        
+       if σ ∈ skipChars and q ∈ allSymbols then 
+       	images.add(currentString)
+       	currentString := λ
+       	return translationGet(q)
+       elseif q+σ in preOps then 
+       	currentString := currentString + s
+       	return λ
+       elseif σ ∈ (StartOps ∪ alphaNum) and q ∈ allSymbols then 
+       	images.add(currentString)
+       	currentString := λ  + s
+       	return translationGet(q)
+      elseif σ ∈ (StartOps ∪ alphaNum ∪ skipChars)  then 
+      	   currentString := λ  + s
+      	   return translationPreOps(q)
+       else	
+       	currentString :=  s
+       	return translationGet(q)
+       end
+       
+ 
+
+     
+   elseif q ∉ {"Err"} and σ ∈ skipChars  ∪ StartOps then
+		if q="INIT" then 
+		    currentString := (σ ∈ StartOps)? s:λ
+			return λ
+    	elseif translationGet(q)=null then 
+					
+         
+        
+          images.add(currentString)
+          currentString := (σ ∈ skipChars  ∪ StartOps)?s:λ
+       	 
+       	 f= q.charAt(0)
+       	 //if f in alphaUpper then return translationGet("IdU")
+       	 if f in alpha then return translationGet("IdL")
+       	 else  return null
+       	end
+    	else 
+    		
+    		images.add(currentString)
+       	currentString := (σ ∈ skipChars  ∪ StartOps)?s:λ
+    		return translationGet(q)
+    	end
+ 		
+ 		
+ 		
+    else 
+    	 currentString := currentString + s
+    	return  λ
+
+end
+end
+
+///====   mini Parser===
+
+function createParser():IPushdownAutomaton begin
+	Q:=(0‥90)
+	Σ:=Out
+	Γ:={'$'}
+	q₀:=0
+	F:= {1}
+	M:=GPushdownAutomaton(Q,Σ,Γ,q₀,F)
+	//Inicio y fin de lectura
+	M.delta(0,1,λ).push("$")
+	M.delta(1,1,λ).pop("$")
+	M.delta(1,1,")").ignore()
+	
+	M.delta(1,2,"(").ignore()
+	M.delta(2,2,"(").ignore()
+	
+	//Comandos
+	M.delta(2,3,"D").ignore()
+	M.delta(3,4,"v").ignore()
+	M.delta(4,49,"#").ignore()
+	M.delta(49,1,")").ignore()
+	
+	M.delta(2,5,"=").ignore()
+	M.delta(5,6,"v").ignore()
+	M.delta(6,7,"#").ignore()
+	M.delta(7,1,")").ignore()
+	
+	M.delta(2,8,"M").ignore()
+	M.delta(8,9,"#").ignore()
+	M.delta(8,9,"v").ignore()
+	M.delta(9,1,")").ignore()
+	
+	M.delta(2,10,"T").ignore()
+	M.delta(10,11,"l").ignore()
+	M.delta(11,1,")").ignore()
+	M.delta(10,12,"g").ignore()
+	M.delta(12,1,")").ignore()
+	M.delta(10,13,"a").ignore()
+	M.delta(13,1,")").ignore()
+	
+	M.delta(2,14,"F").ignore()
+	M.delta(14,15,"n").ignore()
+	M.delta(15,1,")").ignore()
+	M.delta(14,16,"s").ignore()
+	M.delta(16,1,")").ignore()
+	M.delta(14,17,"e").ignore()
+	M.delta(17,1,")").ignore()
+	M.delta(14,18,"w").ignore()
+	M.delta(18,1,")").ignore()
+	
+	M.delta(2,19,"P").ignore()
+	M.delta(19,20,"b").ignore()
+	M.delta(19,20,"c").ignore()
+	M.delta(20,21,"#").ignore()
+	M.delta(20,21,"v").ignore()
+	M.delta(21,1,")").ignore()
+	
+	M.delta(2,22,"K").ignore()
+	M.delta(22,23,"b").ignore()
+	M.delta(22,23,"c").ignore()
+	M.delta(23,24,"#").ignore()
+	M.delta(23,24,"v").ignore()
+	M.delta(24,1,")").ignore()
+	
+	M.delta(2,25,"V").ignore()
+	M.delta(25,26,"#").ignore()
+	M.delta(25,26,"v").ignore()
+	M.delta(26,27,"g").ignore()
+	M.delta(26,27,"l").ignore()
+	M.delta(26,27,"d").ignore()
+	M.delta(26,27,"k").ignore()
+	M.delta(27,1,")").ignore()
+	
+	M.delta(2,28,"X").ignore()
+	M.delta(28,29,"(").ignore()
+	M.delta(29,30,"g").ignore()
+	M.delta(29,30,"l").ignore()
+	M.delta(29,30,"d").ignore()
+	M.delta(29,30,"k").ignore()
+	M.delta(30,30,"g").ignore()
+	M.delta(30,30,"l").ignore()
+	M.delta(30,30,"d").ignore()
+	M.delta(30,30,"k").ignore()
+	M.delta(30,31,")").ignore()
+	M.delta(31,1,")").ignore()
+	
+	M.delta(2,32,"O").ignore()
+	M.delta(32,33,"#").ignore()
+	M.delta(32,33,"v").ignore()
+	M.delta(33,34,"n").ignore()
+	M.delta(33,34,"s").ignore()
+	M.delta(33,34,"e").ignore()
+	M.delta(33,34,"w").ignore()
+	M.delta(34,1,")").ignore()
+	
+	M.delta(2,50,"S").ignore()
+	M.delta(50,1,")").ignore()
+	
+	M.delta(2,73,"v").ignore()
+	M.delta(73,74,"#").ignore()
+	M.delta(73,74,"v").ignore()
+	M.delta(74,74,"#").ignore()
+	M.delta(74,74,"v").ignore()
+	M.delta(74,1,")").ignore()
+	
+	M.delta(2,80,"v").ignore()
+	M.delta(80,1,")").ignore()
+	
+	//Estructuras de control
+	//If
+	M.delta(2,35,"I").ignore()
+	M.delta(35,36,"(").ignore()
+	
+	M.delta(36,37,"1").ignore()
+	M.delta(37,38,"n").ignore()
+	M.delta(37,38,"s").ignore()
+	M.delta(37,38,"e").ignore()
+	M.delta(37,38,"w").ignore()
+	M.delta(38,39,")").ignore()
+	
+	M.delta(36,40,"2").ignore()
+	M.delta(40,41,"b").ignore()
+	M.delta(40,41,"c").ignore()
+	M.delta(41,42,"#").ignore()
+	M.delta(41,42,"v").ignore()
+	M.delta(42,39,")").ignore()
+	
+	M.delta(36,43,"3").ignore()
+	M.delta(43,44,"b").ignore()
+	M.delta(43,44,"c").ignore()
+	M.delta(44,45,"#").ignore()
+	M.delta(44,45,"v").ignore()
+	M.delta(45,39,")").ignore()
+	
+	M.delta(36,46,"4").ignore()
+	M.delta(46,47,"n").ignore()
+	M.delta(46,47,"s").ignore()
+	M.delta(46,47,"e").ignore()
+	M.delta(46,47,"w").ignore()
+	M.delta(47,39,")").ignore()
+	
+	M.delta(36,48,"N").ignore()
+	M.delta(48,36,"(").ignore()
+	
+	M.delta(36,51,"v").ignore()
+	M.delta(51,39,")").ignore()
+	
+	M.delta(39,1,λ).ignore()
+	
+	//Loop
+	M.delta(2,52,"L").ignore()
+	M.delta(52,53,"(").ignore()
+	
+	M.delta(53,54,"1").ignore()
+	M.delta(54,55,"n").ignore()
+	M.delta(54,55,"s").ignore()
+	M.delta(54,55,"e").ignore()
+	M.delta(54,55,"w").ignore()
+	M.delta(55,56,")").ignore()
+	
+	M.delta(53,57,"2").ignore()
+	M.delta(57,58,"b").ignore()
+	M.delta(57,58,"c").ignore()
+	M.delta(58,59,"#").ignore()
+	M.delta(58,59,"v").ignore()
+	M.delta(59,56,")").ignore()
+	
+	M.delta(53,60,"3").ignore()
+	M.delta(60,61,"b").ignore()
+	M.delta(60,61,"c").ignore()
+	M.delta(61,62,"#").ignore()
+	M.delta(61,62,"v").ignore()
+	M.delta(62,56,")").ignore()
+	
+	M.delta(53,63,"4").ignore()
+	M.delta(63,64,"n").ignore()
+	M.delta(63,64,"s").ignore()
+	M.delta(63,64,"e").ignore()
+	M.delta(63,64,"w").ignore()
+	M.delta(64,56,")").ignore()
+	
+	M.delta(53,65,"N").ignore()
+	M.delta(65,53,"(").ignore()
+	
+	M.delta(53,66,"v").ignore()
+	M.delta(66,56,")").ignore()
+	
+	M.delta(56,1,λ).ignore()
+	
+	//Repeat
+	M.delta(2,67,"R").ignore()
+	M.delta(67,68,"#").ignore()
+	M.delta(67,68,"v").ignore()
+	M.delta(68,1,λ).ignore()
+	
+	//Defun
+	M.delta(2,69,"E").ignore()
+	M.delta(69,70,"v").ignore()
+	M.delta(70,71,"(").ignore()
+	M.delta(71,72,"#").ignore()
+	M.delta(71,72,"v").ignore()
+	M.delta(72,72,"#").ignore()
+	M.delta(72,72,"v").ignore()
+	M.delta(71,89,")").ignore()
+	M.delta(72,89,")").ignore()
+	M.delta(89,1,λ).ignore()
+	
+	
+return M
+end
+
+
+
+
+procedure testLexerParser(M:ITransducer, P:IPushdownAutomaton) begin
+	var sc:java.util.Scanner(System.$in)
+    var string:String	
+    
+    
+    
+    inputA = elements(M.getInputAlphabet())
+    
+    
+	input = ""
+		
+		
+		print "----------------------------"
+		print "Enter one or more lines. End with a single line with $"
+       print "If you want to stop testing, enter EXIT"
+       string:=sc.nextLine() 
+       
+
+
+
+	while string != "EXIT" do
+		
+	   string := string + "  \n "	
+       input := ""
+       while string.charAt(0) != '$' do
+              input := input + string 
+              string:=sc.nextLine() + " \n "
+       end
+       
+       if chars(input) ⊆ inputA then
+           currentString :=  λ
+           images := GArrayList()
+       	result:=M.acceptsString(input)
+			tokenStream := M.getOutputString()
+		
+			print "The input was "+(result?"":"not ")+" accepted by the lexer."
+			if result then 
+				print "Token Stream:  "+ tokenStream 
+			   print "Strings: "+images
+			   result:=P.acceptsString(tokenStream )
+         		print "Parser result: "+(result?"accepted ":"rejected ")
+			
+			else print "Partial token Stream "+ tokenStream 
+			end
+			else print "Input contains invalid characters: "+ (chars(input) \ inputA)
+		end
+       print "----------------------------"
+	
+	   print "Enter one or more lines. End with a single line with $"
+       print "If you want to stop testing, enter EXIT"
+       string:=sc.nextLine()
+       
+end
+print  "Good bye"
+print  ""
+
+end 
+
+
+
+
